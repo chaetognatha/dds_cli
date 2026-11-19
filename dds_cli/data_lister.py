@@ -92,6 +92,9 @@ class DataLister(base.DDSBaseClass):
         if not project_info:
             raise exceptions.NoDataError("No project info was retrieved. No files to list.")
         for project in project_info:
+            if project["Last updated"] is None:
+                continue
+
             try:
                 last_updated = pytz.timezone("UTC").localize(
                     datetime.datetime.strptime(project["Last updated"], "%a, %d %b %Y %H:%M:%S GMT")
@@ -444,10 +447,19 @@ class DataLister(base.DDSBaseClass):
         # Sort again according to chosen of default option
         sort_by = sorting_dict.get(sort_by)
         if sort_by:
-            sorted_projects = sorted(
-                sorted_projects,
-                key=lambda t: (t[sort_by] is None, t[sort_by]),
-                reverse=sort_by == sorting_dict.get("updated"),
+            projects_without_value = [
+                project for project in sorted_projects if project[sort_by] is None
+            ]
+            projects_with_value = [
+                project for project in sorted_projects if project[sort_by] is not None
+            ]
+            sorted_projects = (
+                sorted(
+                    projects_with_value,
+                    key=lambda t: t[sort_by],
+                    reverse=sort_by == sorting_dict.get("updated"),
+                )
+                + projects_without_value
             )
 
         return sorted_projects
